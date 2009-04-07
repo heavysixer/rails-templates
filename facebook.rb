@@ -420,12 +420,14 @@ file 'public/stylesheets/facebook_scaffold.css',
 file 'lib/facebooker_filters.rb', 
 %q{# This module contains a collection of helper methods that make detecting and 
 # responding to Facebook methods easier.
+# This module contains a collection of helper methods that make detecting and 
+# responding to Facebook methods easier.
 module FacebookerFilters
   def self.included(base)
     base.class_eval do
       # The is a conditional before_filter that will only fire for requests using the fbml format.
       before_filter(:except => :uninstalled) do |controller|
-        if controller.params["format"].to_s == "fbml"
+        if controller.params["format"].to_s == "fbml" || controller.params["format"].to_s == "fbjs"
           
           # This session property will be set if the user has called the allow_login_from_facebook is called before this 
           # filter; for example, prepend_before_filter :allow_login_from_facebook, :only => [:show]
@@ -445,7 +447,8 @@ module FacebookerFilters
   def find_facebook_account
     @facebook_session = facebook_session
     @account = Account.find_by_facebook_uid(@facebook_session.user.uid)
-    
+    @account.facebook_account = @facebook_session.user
+    @account
     raise ActiveRecord::RecordNotFound unless @account
     # Assign the current_account so that the existing before_filters that check for authentication can find this user.
     # self.current_account = @account
@@ -457,7 +460,7 @@ module FacebookerFilters
 
   # Deny access to any request that does not use the fbml format.
   def only_for_facebook_users
-    unless params['format'].to_s == "fbml"
+    unless params['format'].to_s == "fbml" || params['format'].to_s == 'fbjs'
       flash[:error] = "This page must be viewed within Facebook."
       redirect_to root_url and return false 
     end
