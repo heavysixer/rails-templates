@@ -2,7 +2,6 @@
 # from Mark Daggett (http://www.locusfoc.us)
 canvas_name = ask("What is your Facebook application's canvas name?")
 
-
 # Plugins
 plugin 'rspec',              :git => 'git://github.com/dchelimsky/rspec.git'
 plugin 'rspec-rails',        :git => 'git://github.com/dchelimsky/rspec-rails.git'
@@ -42,7 +41,7 @@ file "db/migrate/20090129183012_initial_migration.rb",
       t.datetime "created_at"
       t.datetime "updated_at"
     end
-    
+
     create_table "sessions", :force => true do |t|
       t.string   "session_id", :null => false
       t.text     "data"
@@ -51,11 +50,11 @@ file "db/migrate/20090129183012_initial_migration.rb",
     end
     execute("ALTER TABLE accounts CHANGE facebook_uid facebook_uid BIGINT") if adapter_name.to_s == "MySQL"
     add_index "accounts", ["facebook_uid"], :name => "index_accounts_on_facebook_uid"
-    
+
     add_index "sessions", ["updated_at"], :name => "index_sessions_on_updated_at"
     add_index "sessions", ["session_id"], :name => "index_sessions_on_session_id"
   end
-  
+
   def self.down
     drop_table :accounts
     drop_table :sessions
@@ -105,7 +104,7 @@ end
 }
 
 # Controllers
-file 'app/controllers/application.rb', 
+file 'app/controllers/application.rb',
 %q{class ApplicationController < ActionController::Base
   include FacebookerFilters
   helper :all # include all helpers, all the time
@@ -129,9 +128,9 @@ file 'app/controllers/application.rb',
 end
 }
 
-file 'app/controllers/facebook_controller.rb', 
+file 'app/controllers/facebook_controller.rb',
 %q{class FacebookController < ApplicationController
-  protect_from_forgery :except => [:index, :uninstalled, :authorized] 
+  protect_from_forgery :except => [:index, :uninstalled, :authorized]
   before_filter :only_for_facebook_users, :except => [:uninstalled]
   before_filter :find_facebook_account_during_uninstall, :only => [:uninstalled]
   before_filter :find_facebook_account, :except => [:uninstalled, :installed, :errors_with, :authorize_redirect, :authorized]
@@ -197,7 +196,7 @@ end
 }
 
 # Helpers 
-file 'app/helpers/application_helper.rb', 
+file 'app/helpers/application_helper.rb',
 %q{module ApplicationHelper
   
   # Converts the normal Rails flash methods into the message types expected by Facebook.
@@ -205,7 +204,7 @@ file 'app/helpers/application_helper.rb',
     message = custom_flash || flash
     flash_types = [:notice, :warning]
     message.keys.each do |x|
-     case x 
+     case x
        when :notice
          message[:success] = message[:notice]
        when :warning
@@ -214,12 +213,12 @@ file 'app/helpers/application_helper.rb',
     end
     flash_types = [:error, :explanation, :success]
     flash_type = flash_types.detect { |a| message.keys.include?(a) }
-    "<fb:%s><fb:message>%s</fb:message></fb:%s>" % [flash_type.to_s, message[flash_type],flash_type.to_s] if flash_type 
+    "<fb:%s><fb:message>%s</fb:message></fb:%s>" % [flash_type.to_s, message[flash_type],flash_type.to_s] if flash_type
   end
 end}
 
 # Stylesheets
-file 'public/stylesheets/facebook_scaffold.css', 
+file 'public/stylesheets/facebook_scaffold.css',
 %q{/***************************************************
  * Rails UI Elements
  ***************************************************/
@@ -233,7 +232,7 @@ file 'public/stylesheets/facebook_scaffold.css',
 
 .flash_error {
   border: 1px solid #ebb0b0;
-  background-color: #ffc8c8;  
+  background-color: #ffc8c8;
 }
 
 .flash_notice, .flash_success {
@@ -340,7 +339,7 @@ file 'public/stylesheets/facebook_scaffold.css',
 }
 
 .fb_content_box .content {
-  padding:10px !important;  
+  padding:10px !important;
 }
 
 .inline_fb_button_list a {
@@ -417,10 +416,12 @@ file 'public/stylesheets/facebook_scaffold.css',
 }
 
 # Facebook Filters which are useful for sussing out and handling requests made by Facebook uers.
-file 'lib/facebooker_filters.rb', 
-%q{# This module contains a collection of helper methods that make detecting and 
+file 'lib/facebooker_filters.rb',
+%q{# This module contains a collection of helper methods that make detecting and
 # responding to Facebook methods easier.
-# This module contains a collection of helper methods that make detecting and 
+# This module contains a collection of helper methods that make detecting and
+# responding to Facebook methods easier.
+# This module contains a collection of helper methods that make detecting and
 # responding to Facebook methods easier.
 module FacebookerFilters
   def self.included(base)
@@ -428,8 +429,8 @@ module FacebookerFilters
       # The is a conditional before_filter that will only fire for requests using the fbml format.
       before_filter(:except => :uninstalled) do |controller|
         if controller.params["format"].to_s == "fbml" || controller.params["format"].to_s == "fbjs"
-          
-          # This session property will be set if the user has called the allow_login_from_facebook is called before this 
+
+          # This session property will be set if the user has called the allow_login_from_facebook is called before this
           # filter; for example, prepend_before_filter :allow_login_from_facebook, :only => [:show]
           if controller.session[:authenticate_through_facebook].nil? || controller.session[:authenticate_through_facebook] == false
             controller.send(:ensure_application_is_installed_by_facebook_user)
@@ -438,18 +439,17 @@ module FacebookerFilters
       end
     end
   end
-  
+
   def only_login_from_facebook_required
     session[:authenticate_through_facebook] = true
   end
-  
+
   # For requests that use .fbml
   def find_facebook_account
     @facebook_session = facebook_session
     @account = Account.find_by_facebook_uid(@facebook_session.user.uid)
-    @account.facebook_account = @facebook_session.user
-    @account
     raise ActiveRecord::RecordNotFound unless @account
+    @account.facebook_account = @facebook_session.user
     # Assign the current_account so that the existing before_filters that check for authentication can find this user.
     # self.current_account = @account
     @account
@@ -462,10 +462,10 @@ module FacebookerFilters
   def only_for_facebook_users
     unless params['format'].to_s == "fbml" || params['format'].to_s == 'fbjs'
       flash[:error] = "This page must be viewed within Facebook."
-      redirect_to root_url and return false 
+      redirect_to root_url and return false
     end
   end
-  
+
   def find_facebook_account_during_uninstall
     @account = Account.find_by_facebook_uid(params["fb_sig_user"])
     raise ActiveRecord::RecordNotFound unless @account
@@ -477,15 +477,15 @@ end
 }
 
 # Views
-file 'app/views/layouts/application.fbml.erb', 
+file 'app/views/layouts/application.fbml.erb',
 %q{<% if ["production"].include?(ENV["RAILS_ENV"])  %>
     <%= stylesheet_link_tag "facebook_scaffold", :media => "screen" %>
   <%- else -%>
     <%= content_tag :style, File.readlines("public/stylesheets/facebook_scaffold.css").join("\n"), :type=>'text/css' %>
   <%- end -%>
-  
+
   <%= render_facebook_flash() %>
-  
+
   <%= yield %>
   <script type="text/javascript" charset="utf-8">
 
@@ -573,7 +573,7 @@ describe AccountsController do
       response.should be_success
     end
   end
-end  
+end
 }
 
 file 'spec/controllers/facebook_controller_spec.rb', 
@@ -671,7 +671,7 @@ describe FacebookController, "when accessing informational pages" do
     get :privacy, { :format => :fbml }
     response.should be_success
     response.body =~ /facebook\/privacy/
-  end  
+  end
 end
 
 describe FacebookController, "under a rest request from outside of Facebook" do
@@ -682,10 +682,10 @@ describe FacebookController, "under a rest request from outside of Facebook" do
       response.should redirect_to(root_url)
     end
   end
-end  
+end
 }
 
-file 'spec/controllers/facebook_controller_routing_spec.rb', 
+file 'spec/controllers/facebook_controller_routing_spec.rb',
 %q{require File.dirname(__FILE__) + '/../spec_helper'
 describe FacebookController do
   describe "route generation" do
@@ -765,7 +765,7 @@ Spec::Runner.configure do |config|
       end
     end
   end
-  
+
   def mock_account(opts = {})
     unless @account
       @account = mock_model(Account, { :id => 1,
@@ -776,7 +776,7 @@ Spec::Runner.configure do |config|
     end
     @account
   end
-  
+
   def mock_facebooker_session(opts = {})
     mock_model(Facebooker::User, { :id => 1,
                                    :first_name => 'Quentin',
@@ -786,37 +786,37 @@ Spec::Runner.configure do |config|
                                    :profile_fbml= => true,
                                    :is_app_user => true }.merge(opts))
   end
-  
+
   describe "An installed Facebook Application", :shared => true do
     before(:each) do
       @controller.should_receive(:ensure_application_is_installed_by_facebook_user).at_least(:once).and_return(true)
     end
   end
-  
+
   describe "Logged into Facebook Application", :shared => true do
     before(:each) do
       @controller.should_receive(:ensure_authenticated_to_facebook).at_least(:once).and_return(true)
     end
   end
-  
+
   describe "An Installed Application With Extended Params", :shared => true do
     before(:each) do
       @controller.should_receive(:ensure_has_status_update).at_least(:once).and_return(true)
     end
   end
-  
+
   describe "An Account", :shared => true do
     before(:each) do
       Account.stub!(:find).and_return(mock_account)
     end
   end
-    
+
   describe "An Account created through Facebook", :shared => true do
     before(:each) do
       Account.stub!(:find_by_facebook_uid).and_return(mock_account)
     end
   end
-  
+
   describe "A valid Facebook session", :shared => true do
     before(:each) do
       @session = mock('fb_session',{ :user => mock_facebooker_session })
@@ -848,44 +848,44 @@ route "map.resources :accounts"
 
 # Facebook specific routes.
 # Canvas URL And Side Nav URL
-# http://apps.facebook.com/FACEBOOK_APP_NAME/
+"# http://apps.facebook.com/#{canvas_name}/"
 route "map.root :controller => 'facebook'"
 
 # About URL
-# http://apps.facebook.com/FACEBOOK_APP_NAME/about
+"# http://apps.facebook.com/#{canvas_name}/about"
 route "map.about '/about', :controller => 'facebook', :action => 'about'"
 
 # Post-Authorize URL
-# http://apps.facebook.com/FACEBOOK_APP_NAME/authorized
+"# http://apps.facebook.com/#{canvas_name}/authorized"
 route "map.authorized '/authorized', :controller => 'facebook', :action => 'authorized'"
 route "map.bp_authorized '/#{canvas_name}/authorized', :controller => 'facebook', :action => 'authorized'"
 
 # Post-Authorize Redirect URL
-# http://apps.facebook.com/FACEBOOK_APP_NAME/authorize_redirect
+"# http://apps.facebook.com/#{canvas_name}/authorize_redirect"
 route "map.authorize_redirect '/authorize_redirect', :controller => 'facebook', :action => 'authorize_redirect'"
 
 # Facebook Application Profile
-# http://apps.facebook.com/FACEBOOK_APP_NAME/profile
+"# http://apps.facebook.com/#{canvas_name}/profile"
 route "map.authorize_redirect '/profile', :controller => 'accounts', :action => 'index'"
 
 # Post-Add URL
-# http://apps.facebook.com/FACEBOOK_APP_NAME/installed
+"# http://apps.facebook.com/#{canvas_name}/installed"
 route "map.installed '/installed', :controller => 'facebook', :action => 'installed'"
 
 # Privacy URL
-# http://apps.facebook.com/FACEBOOK_APP_NAME/privacy
+"# http://apps.facebook.com/#{canvas_name}/privacy"
 route "map.privacy '/privacy', :controller => 'facebook', :action => 'privacy'"
 
 # Terms Of Service 
-# http://apps.facebook.com/FACEBOOK_APP_NAME/tos
+"# http://apps.facebook.com/#{canvas_name}/tos"
 route "map.tos '/tos', :controller => 'facebook', :action => 'tos'"
 
 # Post-Remove URL
-# http://<some server>/FACEBOOK_APP_NAME/uninstalled  
+"# http://<some server>/#{canvas_name}/uninstalled"
 route "map.uninstalled '/uninstalled', :controller => 'facebook', :action => 'uninstalled'"
 
 # Help URL
-# http://apps.facebook.com/FACEBOOK_APP_NAME/help
+"# http://apps.facebook.com/#{canvas_name}/help"
 route "map.help '/help', :controller => 'facebook', :action => 'help'"
 
 # Errors
