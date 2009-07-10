@@ -9,7 +9,7 @@ plugin 'exception_notifier', :git => 'git://github.com/rails/exception_notificat
 plugin 'will_paginate',      :git => 'git://github.com/mislav/will_paginate.git'
 
 # Ignore auto-generated files
-file '.gitignore', 
+file '.gitignore',
 %q{coverage/*
 log/*.log
 log/*.pid
@@ -31,7 +31,7 @@ coverage/*
 generate("rspec")
 
 # Initial Migration
-file "db/migrate/20090129183012_initial_migration.rb", 
+file "db/migrate/20090129183012_initial_migration.rb",
 %q{class InitialMigration < ActiveRecord::Migration
   def self.up
     create_table "accounts", :force => true do |t|
@@ -77,8 +77,8 @@ run "cp config/database.yml config/database.yml.example"
 
 
 # Models
-file 'app/models/account.rb', 
-%q{class Account < ActiveRecord::Base  
+file 'app/models/account.rb',
+%q{class Account < ActiveRecord::Base
   named_scope :active, :conditions => { :active => true }
 
   # Virtual attribute for when we need to associate a FB Session record with our model
@@ -104,18 +104,18 @@ end
 }
 
 # Controllers
-file 'app/controllers/application.rb',
+file 'app/controllers/application_controller.rb',
 %q{class ApplicationController < ActionController::Base
   include FacebookerFilters
   helper :all # include all helpers, all the time
 
   # See ActionController::RequestForgeryProtection for details
   # Uncomment the :secret if you're not using the cookie session store
-  protect_from_forgery  :secret => 'CHANGE ME TO SOMETHING SECURE'
+  protect_from_forgery
 
   # For use with will_paginate calls
   # For example: Account.paginate(:all, pagination_params.merge(:conditions => { :active => true }))
-  
+
   def pagination_params(opts = {})
     { :page => params[:page] || 1, :per_page => params[:per_page] || 50 }.merge(opts)
   end
@@ -170,7 +170,7 @@ file 'app/controllers/facebook_controller.rb',
 end
 }
 
-file 'app/controllers/accounts_controller.rb', 
+file 'app/controllers/accounts_controller.rb',
 %q{class AccountsController < ApplicationController
   before_filter :only_for_facebook_users
   before_filter :find_facebook_account
@@ -195,10 +195,10 @@ file 'app/controllers/accounts_controller.rb',
 end
 }
 
-# Helpers 
+# Helpers
 file 'app/helpers/application_helper.rb',
 %q{module ApplicationHelper
-  
+
   # Converts the normal Rails flash methods into the message types expected by Facebook.
   def render_facebook_flash(custom_flash = nil)
     message = custom_flash || flash
@@ -283,7 +283,7 @@ file 'public/stylesheets/facebook_scaffold.css',
   border-left: 1px solid #EFf087;
   border-top: 1px solid #EFf087;
   color: #1b1b1b;
-  
+
 }
 
 .fb_content_box {
@@ -559,10 +559,10 @@ describe Account do
 end
 }
 
-file 'spec/controllers/accounts_controller_spec.rb', 
+file 'spec/controllers/accounts_controller_spec.rb',
 %q{require File.expand_path(File.dirname(__FILE__) + '/../spec_helper')
 
-describe AccountsController do  
+describe AccountsController do
   describe "responding to GET index" do
     it_should_behave_like "An installed Facebook Application"
     it_should_behave_like "A valid Facebook session"
@@ -576,10 +576,10 @@ describe AccountsController do
 end
 }
 
-file 'spec/controllers/facebook_controller_spec.rb', 
+file 'spec/controllers/facebook_controller_spec.rb',
 %q{require File.dirname(__FILE__) + '/../spec_helper'
 
-describe FacebookController, "under a rest request from inside Facebook with the application installed" do  
+describe FacebookController, "under a rest request from inside Facebook with the application installed" do
   describe "handling GET /facebook.fbml" do
     it_should_behave_like "An installed Facebook Application"
     it_should_behave_like "A valid Facebook session"
@@ -637,14 +637,14 @@ describe FacebookController, "under a rest request from inside Facebook with the
       @account.stub!(:uninstall).and_return(false)
       Account.stub!(:find_by_facebook_uid).and_return(@account)
       do_post
-      response.headers['Status'].should == '500'
+      response.status.should == '500'
       response.should_not be_success
     end
 
     it "should render an error if the account cannot be found during uninstall" do
       Account.stub!(:find_by_facebook_uid).and_raise(ActiveRecord::RecordNotFound)
       do_post
-      response.headers['Status'].should == '500'
+      response.status.should == '500'
       response.should_not be_success
     end
   end
@@ -653,7 +653,7 @@ end
 describe FacebookController, "when accessing informational pages" do
   it_should_behave_like "An installed Facebook Application"
   it_should_behave_like "A valid Facebook session"
-  it_should_behave_like "An Account created through Facebook"  
+  it_should_behave_like "An Account created through Facebook"
 
   it "should display the about page" do
     get :about, { :format => :fbml }
@@ -737,7 +737,7 @@ describe FacebookController do
 end
 }
 
-file 'spec/spec_helper.rb', 
+file 'spec/spec_helper.rb',
 %q{ENV["RAILS_ENV"] = "test"
 require File.expand_path(File.dirname(__FILE__) + "/../config/environment")
 require 'spec'
@@ -771,6 +771,8 @@ Spec::Runner.configure do |config|
       @account = mock_model(Account, { :id => 1,
                                        :facebook_uid => "123456789",
                                        :active => true,
+                                       :facebook_account= => mock_facebooker_session,
+                                       :facebook_account => mock_facebooker_session,
                                        :update_attribute => true,
                                        :update_attributes => true }.merge(opts))
     end
@@ -844,53 +846,55 @@ fb_user_three:
 }
 
 # Routing
-route "map.resources :accounts"
+file 'config/routes.rb',
+%Q(
+ActionController::Routing::Routes.draw do |map|
 
-# Facebook specific routes.
-# Canvas URL And Side Nav URL
-"# http://apps.facebook.com/#{canvas_name}/"
-route "map.root :controller => 'facebook'"
+  # Canvas URL And Side Nav URL
+  # http://apps.facebook.com/#{canvas_name}/
+  map.root :controller => 'facebook'
 
-# About URL
-"# http://apps.facebook.com/#{canvas_name}/about"
-route "map.about '/about', :controller => 'facebook', :action => 'about'"
+  map.resources :accounts
 
-# Post-Authorize URL
-"# http://apps.facebook.com/#{canvas_name}/authorized"
-route "map.authorized '/authorized', :controller => 'facebook', :action => 'authorized'"
-route "map.bp_authorized '/#{canvas_name}/authorized', :controller => 'facebook', :action => 'authorized'"
+  # Post-Add URL
+  # http://apps.facebook.com/#{canvas_name}/installed
+  map.installed '/installed', :controller => 'facebook', :action => 'installed'
 
-# Post-Authorize Redirect URL
-"# http://apps.facebook.com/#{canvas_name}/authorize_redirect"
-route "map.authorize_redirect '/authorize_redirect', :controller => 'facebook', :action => 'authorize_redirect'"
+  # Facebook Application Profile
+  # http://apps.facebook.com/#{canvas_name}/profile
+  map.profile '/profile', :controller => 'accounts', :action => 'index'
 
-# Facebook Application Profile
-"# http://apps.facebook.com/#{canvas_name}/profile"
-route "map.authorize_redirect '/profile', :controller => 'accounts', :action => 'index'"
+  # About URL
+  map.about '/about', :controller => 'facebook', :action => 'about'
 
-# Post-Add URL
-"# http://apps.facebook.com/#{canvas_name}/installed"
-route "map.installed '/installed', :controller => 'facebook', :action => 'installed'"
+  # Authorize URL
+  # http://apps.facebook.com/#{canvas_name}/authorized
+  map.authorized '/authorized', :controller => 'facebook', :action => 'authorized'
 
-# Privacy URL
-"# http://apps.facebook.com/#{canvas_name}/privacy"
-route "map.privacy '/privacy', :controller => 'facebook', :action => 'privacy'"
+  # Post-Authorize Redirect URL
+  # http://apps.facebook.com/#{canvas_name}/authorize_redirect
+  map.authorize_redirect '/authorize_redirect', :controller => 'facebook', :action => 'authorize_redirect'
 
-# Terms Of Service 
-"# http://apps.facebook.com/#{canvas_name}/tos"
-route "map.tos '/tos', :controller => 'facebook', :action => 'tos'"
+  # Errors
+  map.errors_with_facebook '/errors_with_facebook', :controller => 'facebook', :action => 'errors_with'
 
-# Post-Remove URL
-"# http://<some server>/#{canvas_name}/uninstalled"
-route "map.uninstalled '/uninstalled', :controller => 'facebook', :action => 'uninstalled'"
+  # Help URL
+  # http://apps.facebook.com/#{canvas_name}/help
+  map.help '/help', :controller => 'facebook', :action => 'help'
 
-# Help URL
-"# http://apps.facebook.com/#{canvas_name}/help"
-route "map.help '/help', :controller => 'facebook', :action => 'help'"
+  # Post-Remove URL
+  # http://<some server>/#{canvas_name}/uninstalled
+  map.uninstalled '/uninstalled', :controller => 'facebook', :action => 'uninstalled'
 
-# Errors
-route "map.errors_with_facebook '/errors_with_facebook', :controller => 'facebook', :action => 'errors_with'"
+  # Terms Of Service
+  # http://apps.facebook.com/#{canvas_name}/tos
+  map.tos '/tos', :controller => 'facebook', :action => 'tos'
 
+  # Privacy URL
+  # http://apps.facebook.com/#{canvas_name}/privacy
+  map.privacy '/privacy', :controller => 'facebook', :action => 'privacy'
+end
+)
 
 # Finalize
 run "rm README"
