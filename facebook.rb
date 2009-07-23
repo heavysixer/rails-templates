@@ -419,20 +419,14 @@ file 'public/stylesheets/facebook_scaffold.css',
 file 'lib/facebooker_filters.rb',
 %q{# This module contains a collection of helper methods that make detecting and
 # responding to Facebook methods easier.
-# This module contains a collection of helper methods that make detecting and
-# responding to Facebook methods easier.
-# This module contains a collection of helper methods that make detecting and
-# responding to Facebook methods easier.
 module FacebookerFilters
   def self.included(base)
     base.class_eval do
+
       # The is a conditional before_filter that will only fire for requests using the fbml format.
       before_filter(:except => :uninstalled) do |controller|
         if controller.params["format"].to_s == "fbml" || controller.params["format"].to_s == "fbjs"
-
-          # This session property will be set if the user has called the allow_login_from_facebook is called before this
-          # filter; for example, prepend_before_filter :allow_login_from_facebook, :only => [:show]
-          if controller.session[:authenticate_through_facebook].nil? || controller.session[:authenticate_through_facebook] == false
+          if !controller.instance_variable_defined?(:@please_ensure_application_is_installed_by_facebook_user) || controller.instance_variable_get(:@please_ensure_application_is_installed_by_facebook_user) == false
             controller.send(:ensure_application_is_installed_by_facebook_user)
           end
         end
@@ -440,19 +434,21 @@ module FacebookerFilters
     end
   end
 
+  # Use this as a prepend_before_filter to override the application install check.
   def only_login_from_facebook_required
-    session[:authenticate_through_facebook] = true
+    @please_ensure_application_is_installed_by_facebook_user = true
   end
 
   # For requests that use .fbml
   def find_facebook_account
     @facebook_session = facebook_session
-    @account = Account.find_by_facebook_uid(@facebook_session.user.uid)
+    @account = Account.active.find_by_facebook_uid(@facebook_session.user.uid)
+
     raise ActiveRecord::RecordNotFound unless @account
-    @account.facebook_account = @facebook_session.user
     # Assign the current_account so that the existing before_filters that check for authentication can find this user.
     # self.current_account = @account
     @account
+
   rescue ActiveRecord::RecordNotFound
     flash[:error] = "Could Not Find Account"
     redirect_to(installed_path(:format => 'fbml')) and return false
@@ -460,7 +456,7 @@ module FacebookerFilters
 
   # Deny access to any request that does not use the fbml format.
   def only_for_facebook_users
-    unless params['format'].to_s == "fbml" || params['format'].to_s == 'fbjs'
+    unless params['format'].to_s == "fbml" || params["format"].to_s == "fbjs"
       flash[:error] = "This page must be viewed within Facebook."
       redirect_to root_url and return false
     end
